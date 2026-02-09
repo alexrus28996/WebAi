@@ -3,6 +3,7 @@ const User = require('../models/User');
 const Workspace = require('../models/Workspace');
 const env = require('../config/env');
 const { successResponse, errorResponse } = require('../utils/response');
+const { logAuditEvent } = require('../services/auditService');
 
 const createToken = (user, workspaceId) => {
   return jwt.sign(
@@ -31,6 +32,13 @@ const signup = async (req, res) => {
     });
 
     const token = createToken(user, workspace._id);
+    await logAuditEvent({
+      workspaceId: workspace._id,
+      userId: user._id,
+      action: 'SIGNUP',
+      resourceType: 'User',
+      resourceId: user._id.toString()
+    });
 
     return successResponse(res, 201, {
       token,
@@ -68,6 +76,13 @@ const login = async (req, res) => {
 
     const workspace = await Workspace.findOne({ owner: user._id });
     const token = createToken(user, workspace ? workspace._id : null);
+    await logAuditEvent({
+      workspaceId: workspace ? workspace._id : undefined,
+      userId: user._id,
+      action: 'LOGIN',
+      resourceType: 'User',
+      resourceId: user._id.toString()
+    });
 
     return successResponse(res, 200, {
       token,
