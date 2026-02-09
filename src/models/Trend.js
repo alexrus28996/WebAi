@@ -26,6 +26,15 @@ const trendSchema = new mongoose.Schema(
     fetchedAt: {
       type: Date,
       default: Date.now
+    },
+    publishedAt: {
+      type: Date,
+      required: true
+    },
+    status: {
+      type: String,
+      enum: ['new'],
+      default: 'new'
     }
   },
   { timestamps: true }

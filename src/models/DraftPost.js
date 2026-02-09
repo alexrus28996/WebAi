@@ -21,13 +21,13 @@ const draftPostSchema = new mongoose.Schema(
       type: String,
       required: true
     },
-    text: {
+    content: {
       type: String,
       required: true
     },
     status: {
       type: String,
-      enum: ['draft', 'scheduled', 'posted'],
+      enum: ['draft'],
       default: 'draft'
     },
     scheduledFor: {

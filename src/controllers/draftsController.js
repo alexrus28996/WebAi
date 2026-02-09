@@ -5,8 +5,8 @@ const { generateDraft } = require('../services/aiService');
 const generateDraftHandler = async (req, res) => {
   try {
     const { trendId, angle } = req.body;
-    if (!trendId) {
-      return res.status(400).json({ message: 'trendId is required.' });
+    if (!trendId || !angle) {
+      return res.status(400).json({ message: 'trendId and angle are required.' });
     }
 
     const trend = await Trend.findOne({ _id: trendId, workspace: req.user.workspaceId });
@@ -21,7 +21,7 @@ const generateDraftHandler = async (req, res) => {
       user: req.user.userId,
       trend: trend._id,
       angle: draftData.angle,
-      text: draftData.text,
+      content: draftData.content,
       status: draftData.status
     });
 

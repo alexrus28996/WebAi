@@ -28,13 +28,13 @@ const postingRulesSchema = new mongoose.Schema(
       type: String,
       required: true
     },
-    timeWindow: {
+    preferredTime: {
       type: String,
       required: true
     },
-    autoPublish: {
+    autoGenerate: {
       type: Boolean,
-      default: false
+      required: true
     }
   },
   { timestamps: true }

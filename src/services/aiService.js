@@ -1,5 +1,5 @@
-const buildMockPost = ({ title, description, angle }) => {
-  return [
+const buildMockPost = ({ title, description, angle }) =>
+  [
     `Hook: ${title}`,
     '',
     `Angle: ${angle}`,
@@ -13,15 +13,14 @@ const buildMockPost = ({ title, description, angle }) => {
     '',
     '#leadership #saas #productivity'
   ].join('\n');
-};
 
 const generateDraft = async ({ trend, angle }) => {
   const safeAngle = angle || 'A practical, actionable perspective for busy teams.';
-  const text = buildMockPost({ title: trend.title, description: trend.description, angle: safeAngle });
+  const content = buildMockPost({ title: trend.title, description: trend.description, angle: safeAngle });
 
   return {
     angle: safeAngle,
-    text,
+    content,
     status: 'draft'
   };
 };
