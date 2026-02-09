@@ -1,10 +1,18 @@
 const DraftPost = require('../models/DraftPost');
 const { successResponse, errorResponse } = require('../utils/response');
 const { logAuditEvent } = require('../services/auditService');
+const logger = require('../utils/logger');
 
 const scheduleDraft = async (req, res) => {
   try {
     const { draftId } = req.body;
+    logger.info({
+      requestId: req.requestId,
+      action: 'DRAFT_SCHEDULE_START',
+      workspaceId: req.workspaceId,
+      userId: req.user.userId,
+      draftId
+    });
     const draft = await DraftPost.findOne({ _id: draftId, workspace: req.workspaceId });
     if (!draft) {
       return errorResponse(res, 404, 'INVALID_STATE', 'Draft not found.');
@@ -31,6 +39,13 @@ const scheduleDraft = async (req, res) => {
       action: 'DRAFT_SCHEDULED',
       resourceType: 'DraftPost',
       resourceId: draft._id.toString()
+    });
+    logger.info({
+      requestId: req.requestId,
+      action: 'DRAFT_SCHEDULE_END',
+      workspaceId: req.workspaceId,
+      userId: req.user.userId,
+      draftId: draft._id.toString()
     });
 
     return successResponse(res, 200, { message: 'Draft scheduled.', draft });

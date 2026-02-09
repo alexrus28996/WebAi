@@ -9,11 +9,14 @@ const draftsRoutes = require('./routes/draftsRoutes');
 const scheduleRoutes = require('./routes/scheduleRoutes');
 const workersRoutes = require('./routes/workersRoutes');
 const { successResponse, errorResponse } = require('./utils/response');
+const requestContext = require('./middlewares/requestContext');
+const logger = require('./utils/logger');
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(requestContext);
 
 app.get('/health', (req, res) => {
   successResponse(res, 200, { status: 'ok', timestamp: new Date().toISOString() });
@@ -30,6 +33,15 @@ app.use('/workers', workersRoutes);
 
 app.use((req, res) => {
   errorResponse(res, 404, 'INVALID_STATE', 'Route not found.');
+});
+
+app.use((err, req, res, next) => {
+  logger.error({
+    requestId: req.requestId,
+    message: err.message,
+    path: req.originalUrl || req.url
+  });
+  errorResponse(res, 500, 'INTERNAL_ERROR', 'Something went wrong');
 });
 
 module.exports = app;

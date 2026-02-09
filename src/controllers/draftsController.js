@@ -3,10 +3,18 @@ const Trend = require('../models/Trend');
 const { generateDraft } = require('../services/aiService');
 const { successResponse, errorResponse } = require('../utils/response');
 const { logAuditEvent } = require('../services/auditService');
+const logger = require('../utils/logger');
 
 const generateDraftHandler = async (req, res) => {
   try {
     const { trendId, angle } = req.body;
+    logger.info({
+      requestId: req.requestId,
+      action: 'DRAFT_GENERATE_START',
+      workspaceId: req.workspaceId,
+      userId: req.user.userId,
+      trendId
+    });
     const trend = await Trend.findOne({ _id: trendId, workspace: req.workspaceId });
     if (!trend) {
       return errorResponse(res, 404, 'INVALID_STATE', 'Trend not found.');
@@ -29,6 +37,13 @@ const generateDraftHandler = async (req, res) => {
       resourceType: 'DraftPost',
       resourceId: draft._id.toString(),
       meta: { trendId: trend._id.toString() }
+    });
+    logger.info({
+      requestId: req.requestId,
+      action: 'DRAFT_GENERATE_END',
+      workspaceId: req.workspaceId,
+      userId: req.user.userId,
+      draftId: draft._id.toString()
     });
 
     return successResponse(res, 201, draft);
