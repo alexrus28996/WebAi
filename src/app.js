@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const mongoose = require('mongoose');
 
 const authMiddleware = require('./utils/authMiddleware');
 const authRoutes = require('./routes/authRoutes');
@@ -15,6 +16,8 @@ const trendSourcesRoutes = require('./routes/trendSourcesRoutes');
 const { successResponse, errorResponse } = require('./utils/response');
 const requestContext = require('./middlewares/requestContext');
 const logger = require('./utils/logger');
+const env = require('./config/env');
+const { version } = require('../package.json');
 
 const app = express();
 
@@ -23,7 +26,29 @@ app.use(express.json());
 app.use(requestContext);
 
 app.get('/health', (req, res) => {
-  successResponse(res, 200, { status: 'ok', timestamp: new Date().toISOString() });
+  successResponse(res, 200, {
+    status: 'ok',
+    version,
+    uptime: process.uptime()
+  });
+});
+
+app.get('/ready', (req, res) => {
+  const isMongoReady = mongoose.connection.readyState === 1;
+  const isAiReady = env.aiProvider !== 'openai' || Boolean(env.openaiApiKey);
+  const isReady = isMongoReady && isAiReady;
+
+  if (!isReady) {
+    return errorResponse(res, 503, 'NOT_READY', 'Service not ready.');
+  }
+
+  return successResponse(res, 200, {
+    status: 'ready',
+    checks: {
+      mongo: isMongoReady,
+      aiProvider: env.aiProvider
+    }
+  });
 });
 
 app.use('/auth', authRoutes);
