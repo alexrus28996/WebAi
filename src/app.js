@@ -8,6 +8,7 @@ const trendsRoutes = require('./routes/trendsRoutes');
 const draftsRoutes = require('./routes/draftsRoutes');
 const scheduleRoutes = require('./routes/scheduleRoutes');
 const workersRoutes = require('./routes/workersRoutes');
+const { successResponse, errorResponse } = require('./utils/response');
 
 const app = express();
 
@@ -15,7 +16,7 @@ app.use(cors());
 app.use(express.json());
 
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  successResponse(res, 200, { status: 'ok', timestamp: new Date().toISOString() });
 });
 
 app.use('/auth', authRoutes);
@@ -28,7 +29,7 @@ app.use('/schedule', scheduleRoutes);
 app.use('/workers', workersRoutes);
 
 app.use((req, res) => {
-  res.status(404).json({ message: 'Route not found.' });
+  errorResponse(res, 404, 'INVALID_STATE', 'Route not found.');
 });
 
 module.exports = app;

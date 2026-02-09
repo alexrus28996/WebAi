@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Workspace = require('../models/Workspace');
 const env = require('../config/env');
+const { successResponse, errorResponse } = require('../utils/response');
 
 const createToken = (user, workspaceId) => {
   return jwt.sign(
@@ -15,12 +16,12 @@ const signup = async (req, res) => {
   try {
     const { name, email, password, workspaceName } = req.body;
     if (!name || !email || !password) {
-      return res.status(400).json({ message: 'Name, email, and password are required.' });
+      return errorResponse(res, 400, 'VALIDATION_ERROR', 'Name, email, and password are required.');
     }
 
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
-      return res.status(409).json({ message: 'User already exists.' });
+      return errorResponse(res, 409, 'CONFLICT', 'User already exists.');
     }
 
     const user = await User.create({ name, email, password });
@@ -31,7 +32,7 @@ const signup = async (req, res) => {
 
     const token = createToken(user, workspace._id);
 
-    return res.status(201).json({
+    return successResponse(res, 201, {
       token,
       user: {
         id: user._id,
@@ -44,7 +45,7 @@ const signup = async (req, res) => {
       }
     });
   } catch (error) {
-    return res.status(500).json({ message: 'Unable to create account.', error: error.message });
+    return errorResponse(res, 500, 'INVALID_STATE', 'Unable to create account.');
   }
 };
 
@@ -52,23 +53,23 @@ const login = async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password are required.' });
+      return errorResponse(res, 400, 'VALIDATION_ERROR', 'Email and password are required.');
     }
 
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials.' });
+      return errorResponse(res, 401, 'VALIDATION_ERROR', 'Invalid credentials.');
     }
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials.' });
+      return errorResponse(res, 401, 'VALIDATION_ERROR', 'Invalid credentials.');
     }
 
     const workspace = await Workspace.findOne({ owner: user._id });
     const token = createToken(user, workspace ? workspace._id : null);
 
-    return res.status(200).json({
+    return successResponse(res, 200, {
       token,
       user: {
         id: user._id,
@@ -80,7 +81,7 @@ const login = async (req, res) => {
         : null
     });
   } catch (error) {
-    return res.status(500).json({ message: 'Unable to login.', error: error.message });
+    return errorResponse(res, 500, 'INVALID_STATE', 'Unable to login.');
   }
 };
 

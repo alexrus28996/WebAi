@@ -1,11 +1,12 @@
 const { runMockWorker } = require('../services/workerService');
+const { successResponse, errorResponse } = require('../utils/response');
 
 const runWorker = async (req, res) => {
   try {
     const result = await runMockWorker();
-    return res.status(200).json(result);
+    return successResponse(res, 200, result);
   } catch (error) {
-    return res.status(500).json({ message: 'Worker failed.', error: error.message });
+    return errorResponse(res, 500, 'INVALID_STATE', 'Worker failed.');
   }
 };
 

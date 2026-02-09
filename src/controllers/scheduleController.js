@@ -1,33 +1,33 @@
 const DraftPost = require('../models/DraftPost');
+const { successResponse, errorResponse } = require('../utils/response');
 
 const scheduleDraft = async (req, res) => {
   try {
-    const { draftId, scheduledTime } = req.body;
-    if (!draftId || !scheduledTime) {
-      return res.status(400).json({ message: 'draftId and scheduledTime are required.' });
-    }
-
+    const { draftId } = req.body;
     const draft = await DraftPost.findOne({ _id: draftId, workspace: req.user.workspaceId });
     if (!draft) {
-      return res.status(404).json({ message: 'Draft not found.' });
+      return errorResponse(res, 404, 'INVALID_STATE', 'Draft not found.');
+    }
+
+    if (draft.status === 'scheduled') {
+      return errorResponse(res, 409, 'CONFLICT', 'Draft already scheduled.');
+    }
+
+    if (draft.status === 'posted') {
+      return errorResponse(res, 400, 'INVALID_STATE', 'Draft already posted.');
     }
 
     if (draft.status !== 'draft') {
-      return res.status(400).json({ message: 'Draft already scheduled.' });
-    }
-
-    const scheduledDate = new Date(scheduledTime);
-    if (Number.isNaN(scheduledDate.getTime())) {
-      return res.status(400).json({ message: 'scheduledTime must be a valid ISO string.' });
+      return errorResponse(res, 400, 'INVALID_STATE', 'Draft status cannot be scheduled.');
     }
 
     draft.status = 'scheduled';
-    draft.scheduledTime = scheduledDate;
+    draft.scheduledTime = req.validatedScheduledTime;
     await draft.save();
 
-    return res.status(200).json({ message: 'Draft scheduled.', draft });
+    return successResponse(res, 200, { message: 'Draft scheduled.', draft });
   } catch (error) {
-    return res.status(500).json({ message: 'Unable to schedule draft.', error: error.message });
+    return errorResponse(res, 500, 'INVALID_STATE', 'Unable to schedule draft.');
   }
 };
 
