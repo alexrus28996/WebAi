@@ -1,7 +1,7 @@
 const DraftPost = require('../models/DraftPost');
 const PostingRules = require('../models/PostingRules');
 const Trend = require('../models/Trend');
-const { generateDraft } = require('../services/aiService');
+const { generateUniqueDraft } = require('../services/uniquenessService');
 const { successResponse, errorResponse } = require('../utils/response');
 const { logAuditEvent } = require('../services/auditService');
 const logger = require('../utils/logger');
@@ -22,22 +22,17 @@ const generateDraftHandler = async (req, res) => {
     }
 
     const rules = await PostingRules.findOne({ workspace: req.workspaceId }).sort({ createdAt: -1 });
-    const recentDrafts = await DraftPost.find({ workspace: req.workspaceId })
-      .populate('trend', 'title')
-      .sort({ createdAt: -1 })
-      .limit(10);
-
-    const avoidTopics = recentDrafts.map((draft) => draft?.trend?.title).filter(Boolean);
-    const avoidPhrases = recentDrafts
-      .map((draft) => (draft.content ? draft.content.split('\n')[0] : null))
-      .filter(Boolean);
-
-    const draftData = await generateDraft({
+    const {
+      draftData,
+      similarityScore,
+      generationAttempts,
+      angleMeta,
+      forceAccepted
+    } = await generateUniqueDraft({
       trend,
-      angle,
       rules,
-      avoidTopics,
-      avoidPhrases,
+      workspaceId: req.workspaceId,
+      preferredAngle: angle,
       requestId: req.requestId
     });
 
@@ -46,9 +41,18 @@ const generateDraftHandler = async (req, res) => {
       user: req.user.userId,
       trend: trend._id,
       angle: draftData.angle,
+      meta: {
+        angleUsed: angleMeta.angleUsed,
+        angleReused: angleMeta.angleReused,
+        generationDate: angleMeta.generationDate
+      },
       content: draftData.content,
       aiMeta: draftData.aiMeta,
-      status: draftData.status
+      status: draftData.status,
+      similarityScore,
+      generationAttempts,
+      angleReused: angleMeta.angleReused,
+      forceAccepted
     });
 
     await Trend.updateOne(

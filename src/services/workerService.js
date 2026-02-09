@@ -1,7 +1,7 @@
 const Trend = require('../models/Trend');
 const DraftPost = require('../models/DraftPost');
 const PostingRules = require('../models/PostingRules');
-const { generateDraft } = require('./aiService');
+const { generateUniqueDraft } = require('./uniquenessService');
 const { fetchTrendsForWorkspace } = require('./trendService');
 
 const resolvePreferredTime = (preferredTime) => {
@@ -69,30 +69,34 @@ const runMockWorker = async () => {
       continue;
     }
 
-    const recentDrafts = await DraftPost.find({ workspace: rule.workspace })
-      .populate('trend', 'title')
-      .sort({ createdAt: -1 })
-      .limit(10);
-
-    const avoidTopics = recentDrafts.map((draft) => draft?.trend?.title).filter(Boolean);
-    const avoidPhrases = recentDrafts
-      .map((draft) => (draft.content ? draft.content.split('\n')[0] : null))
-      .filter(Boolean);
-
-    const draftData = await generateDraft({
+    const {
+      draftData,
+      similarityScore,
+      generationAttempts,
+      angleMeta,
+      forceAccepted
+    } = await generateUniqueDraft({
       trend,
       rules: rule,
-      avoidTopics,
-      avoidPhrases
+      workspaceId: rule.workspace
     });
     const draft = await DraftPost.create({
       workspace: rule.workspace,
       user: rule.user,
       trend: trend._id,
       angle: draftData.angle,
+      meta: {
+        angleUsed: angleMeta.angleUsed,
+        angleReused: angleMeta.angleReused,
+        generationDate: angleMeta.generationDate
+      },
       content: draftData.content,
       aiMeta: draftData.aiMeta,
-      status: 'draft'
+      status: 'draft',
+      similarityScore,
+      generationAttempts,
+      angleReused: angleMeta.angleReused,
+      forceAccepted
     });
 
     draft.status = 'scheduled';

@@ -21,6 +21,18 @@ const draftPostSchema = new mongoose.Schema(
       type: String,
       required: true
     },
+    meta: {
+      angleUsed: {
+        type: String
+      },
+      angleReused: {
+        type: Boolean,
+        default: false
+      },
+      generationDate: {
+        type: String
+      }
+    },
     content: {
       type: String,
       required: true
@@ -40,6 +52,22 @@ const draftPostSchema = new mongoose.Schema(
       type: String,
       enum: ['draft', 'scheduled', 'posted'],
       default: 'draft'
+    },
+    similarityScore: {
+      type: Number,
+      default: 0
+    },
+    generationAttempts: {
+      type: Number,
+      default: 1
+    },
+    angleReused: {
+      type: Boolean,
+      default: false
+    },
+    forceAccepted: {
+      type: Boolean,
+      default: false
     },
     scheduledTime: {
       type: Date
