@@ -25,6 +25,17 @@ const draftPostSchema = new mongoose.Schema(
       type: String,
       required: true
     },
+    aiMeta: {
+      provider: {
+        type: String
+      },
+      model: {
+        type: String
+      },
+      tokensUsed: {
+        type: Number
+      }
+    },
     status: {
       type: String,
       enum: ['draft', 'scheduled', 'posted'],

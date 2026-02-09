@@ -8,6 +8,7 @@ const trendsRoutes = require('./routes/trendsRoutes');
 const draftsRoutes = require('./routes/draftsRoutes');
 const scheduleRoutes = require('./routes/scheduleRoutes');
 const workersRoutes = require('./routes/workersRoutes');
+const aiRoutes = require('./routes/aiRoutes');
 const { successResponse, errorResponse } = require('./utils/response');
 const requestContext = require('./middlewares/requestContext');
 const logger = require('./utils/logger');
@@ -30,6 +31,7 @@ app.use('/trends', trendsRoutes);
 app.use('/drafts', draftsRoutes);
 app.use('/schedule', scheduleRoutes);
 app.use('/workers', workersRoutes);
+app.use('/ai', aiRoutes);
 
 app.use((req, res) => {
   errorResponse(res, 404, 'INVALID_STATE', 'Route not found.');

@@ -58,13 +58,29 @@ const runMockWorker = async () => {
       continue;
     }
 
-    const draftData = await generateDraft({ trend });
+    const recentDrafts = await DraftPost.find({ workspace: rule.workspace })
+      .populate('trend', 'title')
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    const avoidTopics = recentDrafts.map((draft) => draft?.trend?.title).filter(Boolean);
+    const avoidPhrases = recentDrafts
+      .map((draft) => (draft.content ? draft.content.split('\n')[0] : null))
+      .filter(Boolean);
+
+    const draftData = await generateDraft({
+      trend,
+      rules: rule,
+      avoidTopics,
+      avoidPhrases
+    });
     const draft = await DraftPost.create({
       workspace: rule.workspace,
       user: rule.user,
       trend: trend._id,
       angle: draftData.angle,
       content: draftData.content,
+      aiMeta: draftData.aiMeta,
       status: 'draft'
     });
 
