@@ -7,7 +7,9 @@ const rulesRoutes = require('./routes/rulesRoutes');
 const trendsRoutes = require('./routes/trendsRoutes');
 const draftsRoutes = require('./routes/draftsRoutes');
 const scheduleRoutes = require('./routes/scheduleRoutes');
+const schedulerRoutes = require('./routes/schedulerRoutes');
 const workersRoutes = require('./routes/workersRoutes');
+const publisherRoutes = require('./routes/publisherRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 const trendSourcesRoutes = require('./routes/trendSourcesRoutes');
 const { successResponse, errorResponse } = require('./utils/response');
@@ -32,7 +34,9 @@ app.use('/trends', trendsRoutes);
 app.use('/trend-sources', trendSourcesRoutes);
 app.use('/drafts', draftsRoutes);
 app.use('/schedule', scheduleRoutes);
+app.use('/scheduler', schedulerRoutes);
 app.use('/workers', workersRoutes);
+app.use('/publisher', publisherRoutes);
 app.use('/ai', aiRoutes);
 
 app.use((req, res) => {
