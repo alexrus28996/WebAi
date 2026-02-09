@@ -61,7 +61,9 @@ const fetchTrendsForWorkspace = async (workspaceId, { requestId } = {}) => {
     insertedCount: 0,
     skippedOldCount: 0,
     skippedDuplicateCount: 0,
-    sourcesChecked: sources.length
+    sourcesChecked: sources.length,
+    sourcesSucceeded: 0,
+    sourcesFailed: 0
   };
 
   const now = new Date();
@@ -71,14 +73,25 @@ const fetchTrendsForWorkspace = async (workspaceId, { requestId } = {}) => {
     try {
       const response = await axios.get(source.url, { timeout: 15000, responseType: 'text' });
       feed = await parser.parseString(response.data);
+      await TrendSource.updateOne(
+        { _id: source._id },
+        { $set: { lastFetchedAt: now, lastError: null, lastErrorAt: null } }
+      );
+      summary.sourcesSucceeded += 1;
     } catch (error) {
+      const message = (error && error.message ? error.message : 'Unknown error').slice(0, 300);
+      await TrendSource.updateOne(
+        { _id: source._id },
+        { $set: { lastError: message, lastErrorAt: now } }
+      );
       logger.warn({
         requestId,
         action: 'TRENDS_FETCH_SOURCE_FAILED',
         workspaceId,
         source: source.name,
-        message: error.message
+        message
       });
+      summary.sourcesFailed += 1;
       continue;
     }
 

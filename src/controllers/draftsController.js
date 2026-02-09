@@ -50,6 +50,12 @@ const generateDraftHandler = async (req, res) => {
       aiMeta: draftData.aiMeta,
       status: draftData.status
     });
+
+    await Trend.updateOne(
+      { _id: trend._id, workspaceId: req.workspaceId },
+      { $set: { status: 'used' } }
+    );
+
     await logAuditEvent({
       workspaceId: req.workspaceId,
       userId: req.user.userId,

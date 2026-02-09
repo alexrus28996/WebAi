@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Trend = require('../models/Trend');
 const { fetchTrendsForWorkspace } = require('../services/trendService');
 const { successResponse, errorResponse } = require('../utils/response');
@@ -53,7 +54,44 @@ const listTrends = async (req, res) => {
   }
 };
 
+const updateTrendStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.validatedBody;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return errorResponse(res, 400, 'VALIDATION_ERROR', 'Invalid trend id.');
+    }
+
+    const trend = await Trend.findOne({ _id: id, workspaceId: req.workspaceId });
+    if (!trend) {
+      return errorResponse(res, 403, 'FORBIDDEN', 'Trend access denied.');
+    }
+
+    trend.status = status;
+    await trend.save();
+
+    logger.info({
+      requestId: req.requestId,
+      action: 'TREND_STATUS_UPDATED',
+      workspaceId: req.workspaceId,
+      trendId: trend._id.toString(),
+      status
+    });
+
+    return successResponse(res, 200, trend);
+  } catch (error) {
+    logger.error({
+      requestId: req.requestId,
+      action: 'TREND_STATUS_UPDATE_FAILED',
+      message: error.message
+    });
+    return errorResponse(res, 500, 'INVALID_STATE', 'Unable to update trend status.');
+  }
+};
+
 module.exports = {
   fetchTrends,
-  listTrends
+  listTrends,
+  updateTrendStatus
 };

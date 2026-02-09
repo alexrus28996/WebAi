@@ -22,9 +22,21 @@ const trendSourceSchema = new mongoose.Schema(
     freshnessHours: {
       type: Number,
       default: 48
+    },
+    lastFetchedAt: {
+      type: Date,
+      default: null
+    },
+    lastError: {
+      type: String,
+      default: null
+    },
+    lastErrorAt: {
+      type: Date,
+      default: null
     }
   },
-  { timestamps: { createdAt: true, updatedAt: false } }
+  { timestamps: true }
 );
 
 module.exports = mongoose.model('TrendSource', trendSourceSchema);
