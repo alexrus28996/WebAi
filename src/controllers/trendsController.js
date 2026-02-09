@@ -7,7 +7,7 @@ const fetchTrends = async (req, res) => {
     return res.status(201).json({ message: 'Mock trends stored.', trends: created });
   } catch (error) {
     return res.status(500).json({ message: 'Unable to fetch trends.', error: error.message });
-  }
+  } 
 };
 
 const listTrends = async (req, res) => {

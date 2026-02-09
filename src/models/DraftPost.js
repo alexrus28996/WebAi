@@ -27,8 +27,11 @@ const draftPostSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['draft'],
+      enum: ['draft', 'scheduled'],
       default: 'draft'
+    },
+    scheduledTime: {
+      type: Date
     },
     scheduledFor: {
       type: Date
