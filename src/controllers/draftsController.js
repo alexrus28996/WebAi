@@ -16,7 +16,7 @@ const generateDraftHandler = async (req, res) => {
       userId: req.user.userId,
       trendId
     });
-    const trend = await Trend.findOne({ _id: trendId, workspace: req.workspaceId });
+    const trend = await Trend.findOne({ _id: trendId, workspaceId: req.workspaceId });
     if (!trend) {
       return errorResponse(res, 404, 'INVALID_STATE', 'Trend not found.');
     }

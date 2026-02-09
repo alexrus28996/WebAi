@@ -2,42 +2,52 @@ const mongoose = require('mongoose');
 
 const trendSchema = new mongoose.Schema(
   {
-    workspace: {
+    workspaceId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Workspace',
+      required: true
+    },
+    url: {
+      type: String,
       required: true
     },
     title: {
       type: String,
       required: true
     },
-    description: {
-      type: String,
-      required: true
-    },
     source: {
       type: String,
-      default: 'mock'
-    },
-    score: {
-      type: Number,
-      default: 0
-    },
-    fetchedAt: {
-      type: Date,
-      default: Date.now
+      required: true
     },
     publishedAt: {
       type: Date,
       required: true
     },
+    fetchedAt: {
+      type: Date,
+      default: Date.now
+    },
     status: {
       type: String,
-      enum: ['new'],
+      enum: ['new', 'used', 'ignored'],
       default: 'new'
+    },
+    titleNormalized: {
+      type: String,
+      required: true
+    },
+    urlNormalized: {
+      type: String,
+      required: true
+    },
+    contentHash: {
+      type: String
     }
   },
   { timestamps: true }
 );
+
+trendSchema.index({ workspaceId: 1, urlNormalized: 1 }, { unique: true });
+trendSchema.index({ workspaceId: 1, titleNormalized: 1, publishedAt: 1 });
 
 module.exports = mongoose.model('Trend', trendSchema);

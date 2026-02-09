@@ -1,46 +1,140 @@
+const axios = require('axios');
+const Parser = require('rss-parser');
 const Trend = require('../models/Trend');
+const TrendSource = require('../models/TrendSource');
+const { normalizeTrendTitle, normalizeTrendUrl } = require('../utils/trendNormalization');
+const logger = require('../utils/logger');
 
-const mockTrends = () => {
-  const now = Date.now();
-  return [
-    {
-      title: 'AI-driven productivity for remote teams',
-      description: 'How AI tools are reshaping daily workflows for distributed organizations.',
-      score: 86,
-      publishedAt: new Date(now - 1000 * 60 * 60 * 6)
-    },
-    {
-      title: 'Human-centered leadership in tech',
-      description: 'Balancing innovation with empathy to improve retention and performance.',
-      score: 74,
-      publishedAt: new Date(now - 1000 * 60 * 60 * 12)
-    },
-    {
-      title: 'Data storytelling in SaaS marketing',
-      description: 'Turning customer metrics into narratives that drive pipeline growth.',
-      score: 68,
-      publishedAt: new Date(now - 1000 * 60 * 60 * 24)
-    },
-    {
-      title: 'AI copilots for customer success teams',
-      description: 'How copilots reduce response times and improve renewal conversations.',
-      score: 62,
-      publishedAt: new Date(now - 1000 * 60 * 60 * 30)
-    }
-  ];
-};
+const parser = new Parser();
 
-const fetchMockTrends = async (workspaceId) => {
-  const trends = mockTrends().map((trend) => ({
-    ...trend,
-    workspace: workspaceId,
-    source: 'mock-trends',
-    status: 'new'
+const DEFAULT_TREND_SOURCES = [
+  {
+    name: 'Google Search Central Blog',
+    url: 'https://developers.google.com/search/blog/rss.xml',
+    freshnessHours: 48
+  },
+  {
+    name: 'Search Engine Journal',
+    url: 'https://www.searchenginejournal.com/feed/',
+    freshnessHours: 48
+  },
+  {
+    name: 'Search Engine Land',
+    url: 'https://searchengineland.com/feed',
+    freshnessHours: 48
+  }
+];
+
+const ensureDefaultSources = async (workspaceId) => {
+  const existingCount = await TrendSource.countDocuments({ workspaceId });
+  if (existingCount > 0) {
+    return;
+  }
+
+  const sources = DEFAULT_TREND_SOURCES.map((source) => ({
+    workspaceId,
+    name: source.name,
+    url: source.url,
+    enabled: true,
+    freshnessHours: source.freshnessHours
   }));
 
-  return Trend.insertMany(trends);
+  await TrendSource.insertMany(sources);
+};
+
+const parsePublishedAt = (item) => {
+  const dateValue = item.isoDate || item.pubDate || item.published;
+  if (!dateValue) {
+    return null;
+  }
+  const parsed = new Date(dateValue);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+  return parsed;
+};
+
+const fetchTrendsForWorkspace = async (workspaceId, { requestId } = {}) => {
+  await ensureDefaultSources(workspaceId);
+  const sources = await TrendSource.find({ workspaceId, enabled: true });
+  const summary = {
+    insertedCount: 0,
+    skippedOldCount: 0,
+    skippedDuplicateCount: 0,
+    sourcesChecked: sources.length
+  };
+
+  const now = new Date();
+
+  for (const source of sources) {
+    let feed;
+    try {
+      const response = await axios.get(source.url, { timeout: 15000, responseType: 'text' });
+      feed = await parser.parseString(response.data);
+    } catch (error) {
+      logger.warn({
+        requestId,
+        action: 'TRENDS_FETCH_SOURCE_FAILED',
+        workspaceId,
+        source: source.name,
+        message: error.message
+      });
+      continue;
+    }
+
+    const freshnessHours = source.freshnessHours || 48;
+    const freshnessCutoff = new Date(now.getTime() - freshnessHours * 60 * 60 * 1000);
+
+    for (const item of feed.items || []) {
+      const title = item.title ? item.title.trim() : null;
+      const url = item.link || item.guid || null;
+      const publishedAt = parsePublishedAt(item);
+
+      if (!title || !url || !publishedAt) {
+        continue;
+      }
+
+      if (publishedAt < freshnessCutoff) {
+        summary.skippedOldCount += 1;
+        continue;
+      }
+
+      const titleNormalized = normalizeTrendTitle(title);
+      const urlNormalized = normalizeTrendUrl(url);
+
+      if (!titleNormalized || !urlNormalized) {
+        continue;
+      }
+
+      const trendDoc = {
+        workspaceId,
+        url,
+        urlNormalized,
+        title,
+        titleNormalized,
+        source: source.name,
+        publishedAt,
+        fetchedAt: now,
+        status: 'new'
+      };
+
+      const result = await Trend.updateOne(
+        { workspaceId, urlNormalized },
+        { $setOnInsert: trendDoc },
+        { upsert: true }
+      );
+
+      if (result.upsertedCount === 1) {
+        summary.insertedCount += 1;
+      } else {
+        summary.skippedDuplicateCount += 1;
+      }
+    }
+  }
+
+  return summary;
 };
 
 module.exports = {
-  fetchMockTrends
+  fetchTrendsForWorkspace
 };

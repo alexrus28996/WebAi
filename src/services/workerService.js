@@ -2,6 +2,7 @@ const Trend = require('../models/Trend');
 const DraftPost = require('../models/DraftPost');
 const PostingRules = require('../models/PostingRules');
 const { generateDraft } = require('./aiService');
+const { fetchTrendsForWorkspace } = require('./trendService');
 
 const resolvePreferredTime = (preferredTime) => {
   const parsed = new Date(preferredTime);
@@ -44,11 +45,21 @@ const runMockWorker = async () => {
   const results = [];
 
   for (const rule of workspaceRules.values()) {
+    const newTrendCount = await Trend.countDocuments({
+      workspaceId: rule.workspace,
+      status: 'new'
+    });
+
+    if (newTrendCount < 5) {
+      await fetchTrendsForWorkspace(rule.workspace);
+    }
+
     const usedTrendIds = await DraftPost.distinct('trend', { workspace: rule.workspace });
     const trend = await Trend.findOne({
-      workspace: rule.workspace,
+      workspaceId: rule.workspace,
+      status: 'new',
       _id: { $nin: usedTrendIds }
-    }).sort({ createdAt: -1 });
+    }).sort({ publishedAt: -1 });
 
     if (!trend) {
       results.push({
